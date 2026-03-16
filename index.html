@@ -470,16 +470,22 @@ document.getElementById('form-submit').onclick=async()=>{
   const yr=document.getElementById('form-year').value;
   if(!yr){alert('Please enter a year.');return;}
   const btn=document.getElementById('form-submit');
-  const dots=document.getElementById('save-dots');
-  const errEl=document.getElementById('save-error');
-  btn.disabled=true; btn.style.opacity='0'; dots.classList.remove('hidden'); errEl.textContent='';
+  const dots=document.querySelector('#save-dots');
+  const errEl=document.querySelector('#save-error');
+  btn.disabled=true; btn.style.opacity='0';
+  if(dots) dots.classList.remove('hidden');
+  if(errEl) errEl.textContent='';
   try{
     const ext=pendingFileName.split('.').pop();
     const path=`${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const fileUrl=await storageUpload('memories',path,pendingFile);
     const [inserted]=await dbInsert('memories',{year:parseInt(yr),date_created:document.getElementById('form-date').value||null,note:document.getElementById('form-note').value.trim()||null,file_url:fileUrl,file_type:pendingFileType,file_name:pendingFileName,storage_path:path});
     memories.unshift(inserted);closeAddModal();activeYear=String(yr);showScreen('year');renderYear();
-  }catch(e){dots.classList.add('hidden');errEl.textContent='Error: '+e.message;btn.disabled=false;btn.style.opacity='';}
+  }catch(e){
+    if(dots) dots.classList.add('hidden');
+    if(errEl) errEl.textContent='Error: '+e.message;
+    btn.disabled=false; btn.style.opacity='';
+  }
 };
 </script>
 </body>
