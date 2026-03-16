@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Squirrel</title>
+<link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif:opsz@12..24&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --yellow: #f5f0c8;
+  --brown:  #2e1f1f;
+  --blue1:  #b8d4e8;
+  --blue2:  #c8d8e4;
+  --white:  #ffffff;
+  --muted:  rgba(46,31,31,0.45);
+  --pad: clamp(1.2rem, 5vw, 3rem);
+}
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--yellow); color: var(--brown); }
+
+.screen { position: fixed; inset: 0; transition: opacity 0.5s ease, transform 0.5s ease; }
+.screen.hidden { opacity: 0; pointer-events: none; transform: translateY(12px); }
+
+/* ── LOADING ── */
+.loading-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(245,240,200,0.88); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brown); opacity: 0.6; transition: opacity 0.3s; }
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+/* ── OPENING ── */
+#screen-open { background: var(--yellow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; overflow: hidden; }
+.open-title { font-size: clamp(2.4rem, 10vw, 5rem); font-weight: 400; letter-spacing: -0.02em; color: var(--brown); line-height: 1; transition: transform 0.4s ease, opacity 0.4s ease; }
+.open-sub { font-size: clamp(0.8rem, 3vw, 1.1rem); color: var(--brown); opacity: 0.65; transition: transform 0.4s ease, opacity 0.4s ease; }
+.open-hint { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown); opacity: 0; position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%); white-space: nowrap; animation: hintFade 2s ease 1.2s forwards; pointer-events: none; }
+@keyframes hintFade { 0%{opacity:0;transform:translateX(-50%) translateY(6px)} 40%{opacity:0.35;transform:translateX(-50%) translateY(0)} 80%{opacity:0.35} 100%{opacity:0.15;transform:translateX(-50%) translateY(0)} }
+/* drag-up progress overlay */
+#screen-open.dragging .open-title,
+#screen-open.dragging .open-sub { transition: none; }
+
+/* ── MENU ── */
+#screen-menu { background: var(--yellow); display: flex; flex-direction: column; padding: var(--pad); justify-content: center; gap: 0; }
+@media (min-width: 600px) { #screen-menu { flex-direction: row; align-items: center; padding: 0 6vw; } }
+.menu-left { display: flex; flex-direction: column; gap: 2rem; flex: 1; }
+.menu-logo-row { display: flex; align-items: baseline; gap: 1.2rem; }
+.menu-logo { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 400; letter-spacing: -0.02em; color: var(--brown); }
+.menu-add { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 400; color: var(--blue1); cursor: pointer; transition: opacity 0.15s; letter-spacing: -0.02em; }
+.menu-add:hover, .menu-add:active { opacity: 0.65; }
+.menu-timeline { display: flex; flex-direction: column; align-items: flex-start; margin-top: 2.5rem; }
+@media (min-width: 600px) { .menu-timeline { align-items: flex-end; margin-top: 0; padding-right: 2vw; } }
+.tl-item { display: flex; flex-direction: column; align-items: flex-start; }
+@media (min-width: 600px) { .tl-item { align-items: flex-end; } }
+.tl-year { font-size: clamp(2rem, 8vw, 3.2rem); font-weight: 400; letter-spacing: -0.03em; color: var(--brown); cursor: pointer; transition: opacity 0.15s; line-height: 1.15; padding: 0.15rem 0; }
+.tl-year:hover, .tl-year:active { opacity: 0.5; }
+.tl-line { width: 1px; height: clamp(1.5rem, 3vh, 3rem); background: var(--brown); opacity: 0.3; margin-left: 0.1rem; }
+@media (min-width: 600px) { .tl-line { margin-left: 0; margin-right: 0.1rem; } }
+.menu-empty { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+/* ── YEAR ── */
+#screen-year { background: var(--brown); display: flex; flex-direction: column; overflow: hidden; }
+.year-topbar { display: flex; align-items: baseline; justify-content: space-between; padding: clamp(1.2rem, 4vw, 2rem) var(--pad) clamp(1rem, 3vw, 1.5rem); flex-shrink: 0; }
+.year-topbar-left { display: flex; align-items: baseline; gap: clamp(0.8rem, 3vw, 1.5rem); }
+.year-num-label { font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 400; letter-spacing: -0.02em; color: var(--yellow); cursor: pointer; transition: opacity 0.15s; }
+.year-num-label:hover, .year-num-label:active { opacity: 0.6; }
+.year-add-link { font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 400; color: var(--blue1); cursor: pointer; transition: opacity 0.15s; letter-spacing: -0.02em; }
+.year-add-link:hover, .year-add-link:active { opacity: 0.65; }
+.year-logo-right { font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 400; color: var(--yellow); cursor: pointer; opacity: 0.7; letter-spacing: -0.02em; }
+.year-logo-right:hover, .year-logo-right:active { opacity: 1; }
+.year-grid-wrap { flex: 1; overflow-y: auto; padding: 0 var(--pad) clamp(2rem, 6vw, 3rem); -webkit-overflow-scrolling: touch; }
+.year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(3px, 1vw, 6px); }
+@media (max-width: 380px) { .year-grid { grid-template-columns: repeat(2, 1fr); } }
+.grid-item { aspect-ratio: 1; cursor: pointer; overflow: hidden; background: var(--blue2); transition: opacity 0.15s; }
+.grid-item:active { opacity: 0.75; }
+.grid-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.grid-item-pdf { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.7; }
+.gi-y { background: var(--yellow); } .gi-b1 { background: var(--blue1); } .gi-b2 { background: var(--blue2); }
+.year-empty { color: var(--yellow); opacity: 0.4; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 4rem 0; text-align: center; }
+
+/* ── ART MODAL ── */
+#art-modal { position: fixed; inset: 0; z-index: 100; background: rgba(46,31,31,0.78); display: flex; align-items: center; justify-content: center; padding: clamp(0.8rem, 4vw, 2rem); animation: fi 0.2s ease; -webkit-overflow-scrolling: touch; }
+#art-modal.hidden { display: none; }
+@keyframes fi { from{opacity:0}to{opacity:1} }
+.art-modal-inner { position: relative; width: 100%; max-width: 580px; background: var(--white); box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: si 0.22s ease; max-height: 90vh; display: flex; flex-direction: column; }
+@keyframes si { from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)} }
+.art-modal-media { width: 100%; flex: 1; min-height: 0; background: var(--yellow); overflow: hidden; display: flex; align-items: center; justify-content: center; max-height: 60vh; }
+.art-modal-media img { width: 100%; height: 100%; object-fit: contain; display: block; max-height: 60vh; }
+.art-modal-media-pdf { padding: 3rem 2rem; font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.5; text-align: center; }
+.art-modal-close { position: absolute; top: 0.7rem; right: 0.8rem; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--brown); opacity: 0.45; font-family: 'Hedvig Letters Serif', serif; line-height: 1; z-index: 2; padding: 0.3rem; }
+.art-modal-close:active { opacity: 1; }
+.art-modal-info { padding: clamp(0.7rem, 3vw, 1rem) clamp(0.9rem, 3vw, 1.2rem); border-top: 1px solid rgba(46,31,31,0.1); display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; flex-shrink: 0; }
+.art-modal-info-text { flex: 1; min-width: 0; }
+.art-edit-row { display: flex; flex-direction: column; gap: 0.5rem; }
+.art-edit-input { background: transparent; border: none; border-bottom: 1px solid rgba(46,31,31,0.2); padding: 0.3rem 0; font-family: 'Hedvig Letters Serif', serif; font-size: clamp(0.75rem, 2.5vw, 0.82rem); color: var(--brown); outline: none; width: 100%; font-style: italic; }
+.art-edit-input:focus { border-bottom-color: var(--brown); }
+.art-field-label { font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.4; margin-bottom: 2px; }
+.art-edit-save { background: none; border: none; cursor: pointer; font-family: 'Hedvig Letters Serif', serif; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.5; padding: 0.4rem 0 0; transition: opacity 0.15s; text-align: left; }
+.art-edit-save:hover { opacity: 1; }
+.art-nav { display: flex; gap: clamp(0.5rem, 2vw, 0.8rem); align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.art-nav-btn { background: none; border: none; cursor: pointer; font-family: 'Hedvig Letters Serif', serif; font-size: clamp(0.6rem, 2vw, 0.65rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brown); opacity: 0.4; transition: opacity 0.15s; padding: 0.4rem 0; min-width: 44px; text-align: center; }
+.art-nav-btn:active { opacity: 1; }
+.art-del-btn { background: none; border: none; cursor: pointer; font-family: 'Hedvig Letters Serif', serif; font-size: clamp(0.6rem, 2vw, 0.65rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brown); opacity: 0.3; transition: opacity 0.15s; padding: 0.4rem 0; min-width: 44px; text-align: center; }
+.art-del-btn:active { opacity: 0.8; }
+
+/* ── ADD MODAL ── */
+#modal-add { position: fixed; inset: 0; z-index: 200; background: rgba(46,31,31,0.55); display: flex; align-items: flex-end; justify-content: center; animation: fi 0.2s ease; }
+@media (min-width: 600px) { #modal-add { align-items: center; } }
+#modal-add.hidden { display: none; }
+.add-card { background: var(--yellow); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; padding: clamp(1.5rem, 5vw, 2.5rem); position: relative; animation: slideUp 0.25s ease; border-radius: 12px 12px 0 0; -webkit-overflow-scrolling: touch; }
+@media (min-width: 600px) { .add-card { border-radius: 0; animation: si 0.2s ease; } }
+@keyframes slideUp { from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)} }
+.add-title { font-size: clamp(1.6rem, 5vw, 2rem); font-weight: 400; letter-spacing: -0.02em; color: var(--brown); margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(46,31,31,0.2); }
+.add-close { position: absolute; top: 1rem; right: 1.2rem; background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--brown); opacity: 0.45; font-family: 'Hedvig Letters Serif', serif; padding: 0.3rem; }
+.add-close:active { opacity: 1; }
+.form-row { margin-bottom: 1.1rem; }
+.form-label { display: block; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brown); opacity: 0.55; margin-bottom: 0.35rem; }
+.form-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(46,31,31,0.3); padding: 0.5rem 0; font-family: 'Hedvig Letters Serif', serif; font-size: 1rem; color: var(--brown); outline: none; }
+.form-input:focus { border-bottom-color: var(--brown); }
+textarea.form-input { border: 1px solid rgba(46,31,31,0.25); padding: 0.6rem; min-height: 68px; resize: none; }
+textarea.form-input:focus { border-color: var(--brown); }
+.form-2col { display: flex; gap: 1.2rem; }
+.form-2col > * { flex: 1; }
+.file-zone { background: rgba(46,31,31,0.07); border: 1px solid rgba(46,31,31,0.2); padding: 1.6rem 1rem; text-align: center; cursor: pointer; transition: background 0.15s; }
+.file-zone:active { background: rgba(46,31,31,0.12); }
+.file-zone input { display: none; }
+.file-zone-text { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brown); opacity: 0.5; line-height: 2; }
+.file-prev { max-height: 70px; max-width: 100%; display: block; margin: 0.5rem auto 0; object-fit: contain; }
+.submit-btn { width: 100%; background: var(--brown); color: var(--yellow); border: none; padding: 1rem; font-family: 'Hedvig Letters Serif', serif; font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.15s; }
+.submit-btn:active { opacity: 0.75; }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.upload-progress { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brown); opacity: 0.5; text-align: center; margin-top: 0.6rem; min-height: 1rem; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay hidden" id="loading-overlay">Loading…</div>
+
+<!-- OPENING -->
+<div class="screen" id="screen-open">
+  <div class="open-title" id="open-title">Squirrel.</div>
+  <div class="open-sub" id="open-sub">your digital archive.</div>
+  <div class="open-hint">scroll or swipe up</div>
+</div>
+
+<!-- MENU -->
+<div class="screen hidden" id="screen-menu">
+  <div class="menu-left">
+    <div class="menu-logo-row">
+      <div class="menu-logo">Squirrel.</div>
+      <div class="menu-add" id="menu-add-btn">Add</div>
+    </div>
+  </div>
+  <div class="menu-timeline" id="menu-timeline"></div>
+</div>
+
+<!-- YEAR -->
+<div class="screen hidden" id="screen-year">
+  <div class="year-topbar">
+    <div class="year-topbar-left">
+      <div class="year-num-label" id="year-back-btn"></div>
+      <div class="year-add-link" id="year-add-btn">Add</div>
+    </div>
+    <div class="year-logo-right" id="year-logo-btn">Squirrel.</div>
+  </div>
+  <div class="year-grid-wrap">
+    <div class="year-grid" id="year-grid"></div>
+  </div>
+</div>
+
+<!-- ART MODAL -->
+<div id="art-modal" class="hidden">
+  <div class="art-modal-inner">
+    <button class="art-modal-close" id="art-close-btn">✕</button>
+    <div class="art-modal-media" id="art-modal-media"></div>
+    <div class="art-modal-info">
+      <div class="art-modal-info-text" id="art-modal-text"></div>
+      <div class="art-nav">
+        <button class="art-nav-btn" id="art-prev-btn">← Prev</button>
+        <button class="art-nav-btn" id="art-next-btn">Next →</button>
+        <button class="art-del-btn" id="art-del-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="modal-add" class="hidden">
+  <div class="add-card">
+    <div class="add-title">Add a memory.</div>
+    <button class="add-close" id="add-close-btn">✕</button>
+    <div class="form-row">
+      <label class="form-label">File — image or PDF</label>
+      <div class="file-zone" id="file-zone">
+        <input type="file" id="file-input" accept="image/*,application/pdf">
+        <div class="file-zone-text" id="file-zone-text">Tap to upload</div>
+        <div id="file-preview"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-2col">
+        <div>
+          <label class="form-label">Year</label>
+          <input class="form-input" type="number" id="form-year" placeholder="2024" min="1900" max="2100" inputmode="numeric">
+        </div>
+        <div>
+          <label class="form-label">Date created</label>
+          <input class="form-input" type="date" id="form-date">
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Note — optional</label>
+      <textarea class="form-input" id="form-note" placeholder="What is this?"></textarea>
+    </div>
+    <button class="submit-btn" id="form-submit">Save to Squirrel</button>
+    <div class="upload-progress" id="upload-progress"></div>
+  </div>
+</div>
+
+<script>
+// ── HARDCODED CREDENTIALS ──
+const SUPABASE_URL = 'https://elweznxsfubcciqswtim.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_YaIRxTVRcXwuWUEQ_0OR0A_Cw7-3q_-';
+
+async function sbFetch(path, opts={}) {
+  return fetch(SUPABASE_URL+path, { ...opts, headers: { 'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json',...(opts.headers||{}) } });
+}
+async function dbSelect(table,query=''){const r=await sbFetch(`/rest/v1/${table}?${query}&order=created_at.desc`);if(!r.ok)throw new Error(await r.text());return r.json();}
+async function dbInsert(table,data){const r=await sbFetch(`/rest/v1/${table}`,{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(data)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function dbUpdate(table,id,data){const r=await sbFetch(`/rest/v1/${table}?id=eq.${id}`,{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(data)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function dbDelete(table,id){const r=await sbFetch(`/rest/v1/${table}?id=eq.${id}`,{method:'DELETE'});if(!r.ok)throw new Error(await r.text());}
+async function storageUpload(bucket,path,file){const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`,{method:'POST',headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':file.type,'x-upsert':'true'},body:file});if(!r.ok)throw new Error(await r.text());return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;}
+async function storageDelete(bucket,path){const r=await sbFetch(`/storage/v1/object/${bucket}`,{method:'DELETE',body:JSON.stringify({prefixes:[path]})});if(!r.ok)throw new Error(await r.text());}
+
+let memories=[],activeYear=null,viewMem=null,addingFromYear=null;
+let pendingFile=null,pendingFileType=null,pendingFileName=null;
+
+const GRID_ACCENTS=['gi-b2','gi-b1','gi-y'];
+function hash(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))&0xfffffff;return h;}
+function accentCls(id){return GRID_ACCENTS[hash(id)%GRID_ACCENTS.length];}
+function getYears(){const m={};memories.forEach(x=>{m[x.year]=(m[x.year]||0)+1;});return Object.entries(m).sort((a,b)=>b[0]-a[0]);}
+function forYear(y){return memories.filter(x=>x.year==y);}
+
+const allScreens=['open','menu','year'];
+function showScreen(name){allScreens.forEach(s=>{const el=document.getElementById('screen-'+s);if(s===name)el.classList.remove('hidden');else el.classList.add('hidden');});}
+function showLoading(v){document.getElementById('loading-overlay').classList.toggle('hidden',!v);}
+
+// ── OPENING GESTURE (scroll + swipe) ──
+const openScreen = document.getElementById('screen-open');
+const openTitle  = document.getElementById('open-title');
+const openSub    = document.getElementById('open-sub');
+let openDone = false;
+
+async function triggerOpen() {
+  if(openDone) return;
+  openDone = true;
+  // animate title up and out
+  openTitle.style.transform = 'translateY(-40px)';
+  openTitle.style.opacity = '0';
+  openSub.style.transform = 'translateY(-24px)';
+  openSub.style.opacity = '0';
+  setTimeout(async () => {
+    showLoading(true);
+    try { memories = await dbSelect('memories'); } catch(e) { alert('Could not load memories: '+e.message); }
+    showLoading(false);
+    showScreen('menu'); renderMenu();
+    // reset for if they ever navigate back
+    setTimeout(()=>{ openDone=false; openTitle.style.transform=''; openTitle.style.opacity=''; openSub.style.transform=''; openSub.style.opacity=''; },600);
+  }, 380);
+}
+
+// Mouse wheel / trackpad scroll
+openScreen.addEventListener('wheel', (e) => {
+  if(e.deltaY > 30) triggerOpen();
+}, { passive: true });
+
+// Touch swipe up
+let touchStartY = 0;
+openScreen.addEventListener('touchstart', (e) => {
+  touchStartY = e.touches[0].clientY;
+  openScreen.classList.add('dragging');
+
+  // live drag feedback
+  const onMove = (e) => {
+    const dy = touchStartY - e.touches[0].clientY;
+    if(dy > 0) {
+      const progress = Math.min(dy / 120, 1);
+      const translateY = -progress * 40;
+      const op = 1 - progress * 0.85;
+      openTitle.style.transform = `translateY(${translateY}px)`;
+      openTitle.style.opacity = op;
+      openSub.style.transform = `translateY(${translateY * 0.6}px)`;
+      openSub.style.opacity = op;
+    }
+  };
+  const onEnd = (e) => {
+    openScreen.classList.remove('dragging');
+    const dy = touchStartY - e.changedTouches[0].clientY;
+    if(dy > 60) {
+      triggerOpen();
+    } else {
+      // snap back
+      openTitle.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+      openSub.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+      openTitle.style.transform = ''; openTitle.style.opacity = '';
+      openSub.style.transform = '';  openSub.style.opacity = '';
+      setTimeout(()=>{ openTitle.style.transition=''; openSub.style.transition=''; }, 320);
+    }
+    openScreen.removeEventListener('touchmove', onMove);
+    openScreen.removeEventListener('touchend', onEnd);
+  };
+  openScreen.addEventListener('touchmove', onMove, { passive: true });
+  openScreen.addEventListener('touchend', onEnd);
+}, { passive: true });
+
+// Menu
+function renderMenu(){
+  const tl=document.getElementById('menu-timeline');tl.innerHTML='';
+  const years=getYears();
+  if(!years.length){tl.innerHTML='<div class="menu-empty">No memories yet</div>';return;}
+  years.forEach(([yr],i)=>{
+    const item=document.createElement('div');item.className='tl-item';
+    const yEl=document.createElement('div');yEl.className='tl-year';yEl.textContent=yr;
+    yEl.onclick=()=>{activeYear=yr;showScreen('year');renderYear();};
+    item.appendChild(yEl);
+    if(i<years.length-1){const line=document.createElement('div');line.className='tl-line';item.appendChild(line);}
+    tl.appendChild(item);
+  });
+}
+document.getElementById('menu-add-btn').onclick=()=>{addingFromYear=null;openAddModal();};
+
+// Year grid
+function renderYear(){
+  document.getElementById('year-back-btn').textContent=activeYear;
+  const grid=document.getElementById('year-grid');grid.innerHTML='';
+  const items=forYear(activeYear);
+  if(!items.length){grid.innerHTML='<div class="year-empty" style="grid-column:1/-1;">Nothing here yet</div>';return;}
+  items.forEach(m=>{
+    const cell=document.createElement('div');cell.className='grid-item';
+    if(m.file_type==='image'&&m.file_url){const img=document.createElement('img');img.src=m.file_url;img.alt='';cell.appendChild(img);}
+    else{cell.classList.add(accentCls(m.id));const pd=document.createElement('div');pd.className='grid-item-pdf';pd.textContent='PDF';cell.appendChild(pd);}
+    cell.onclick=()=>openArtModal(m);
+    grid.appendChild(cell);
+  });
+}
+document.getElementById('year-back-btn').onclick=()=>{showScreen('menu');renderMenu();};
+document.getElementById('year-add-btn').onclick=()=>{addingFromYear=activeYear;openAddModal();};
+document.getElementById('year-logo-btn').onclick=()=>{showScreen('menu');renderMenu();};
+
+// Art modal
+function openArtModal(m){viewMem=m;renderArtModal();document.getElementById('art-modal').classList.remove('hidden');}
+function closeArtModal(){document.getElementById('art-modal').classList.add('hidden');viewMem=null;}
+function renderArtModal(){
+  const m=viewMem;
+  const media=document.getElementById('art-modal-media');media.innerHTML='';
+  if(m.file_type==='image'&&m.file_url){const img=document.createElement('img');img.src=m.file_url;img.alt='';media.appendChild(img);}
+  else{const pd=document.createElement('div');pd.className='art-modal-media-pdf';pd.textContent=m.file_name||'document.pdf';media.appendChild(pd);}
+
+  const txt=document.getElementById('art-modal-text');txt.innerHTML='';
+  const editRow=document.createElement('div');editRow.className='art-edit-row';
+
+  const dateWrap=document.createElement('div');
+  const dateLabel=document.createElement('div');dateLabel.className='art-field-label';dateLabel.textContent='Date';
+  const dateInput=document.createElement('input');dateInput.className='art-edit-input';dateInput.type='date';dateInput.value=m.date_created||'';
+  dateWrap.appendChild(dateLabel);dateWrap.appendChild(dateInput);editRow.appendChild(dateWrap);
+
+  const noteWrap=document.createElement('div');
+  const noteLabel=document.createElement('div');noteLabel.className='art-field-label';noteLabel.textContent='Note';
+  const noteInput=document.createElement('input');noteInput.className='art-edit-input';noteInput.type='text';noteInput.value=m.note||'';noteInput.placeholder='Add a note…';
+  noteWrap.appendChild(noteLabel);noteWrap.appendChild(noteInput);editRow.appendChild(noteWrap);
+
+  const saveBtn=document.createElement('button');saveBtn.className='art-edit-save';saveBtn.textContent='Save changes';
+  saveBtn.onclick=async()=>{
+    const newDate=dateInput.value||null,newNote=noteInput.value.trim()||null;
+    saveBtn.textContent='Saving…';saveBtn.disabled=true;
+    try{
+      const [updated]=await dbUpdate('memories',m.id,{date_created:newDate,note:newNote});
+      const idx=memories.findIndex(x=>x.id===m.id);if(idx>-1)memories[idx]=updated;
+      viewMem=updated;saveBtn.textContent='Saved ✓';
+      setTimeout(()=>{saveBtn.textContent='Save changes';saveBtn.disabled=false;},1500);
+    }catch(e){saveBtn.textContent='Error saving';saveBtn.disabled=false;}
+  };
+  editRow.appendChild(saveBtn);
+  txt.appendChild(editRow);
+
+  const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===m.id);
+  document.getElementById('art-prev-btn').style.opacity=idx>0?'0.4':'0.15';
+  document.getElementById('art-next-btn').style.opacity=idx<items.length-1?'0.4':'0.15';
+}
+document.getElementById('art-close-btn').onclick=closeArtModal;
+document.getElementById('art-modal').onclick=e=>{if(e.target===document.getElementById('art-modal'))closeArtModal();};
+document.getElementById('art-prev-btn').onclick=()=>{const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);if(idx>0){viewMem=items[idx-1];renderArtModal();}};
+document.getElementById('art-next-btn').onclick=()=>{const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);if(idx<items.length-1){viewMem=items[idx+1];renderArtModal();}};
+document.getElementById('art-del-btn').onclick=async()=>{
+  if(!confirm('Delete this memory?'))return;
+  showLoading(true);
+  try{if(viewMem.storage_path)await storageDelete('memories',viewMem.storage_path);await dbDelete('memories',viewMem.id);memories=memories.filter(x=>x.id!==viewMem.id);}
+  catch(e){alert('Delete failed: '+e.message);}
+  showLoading(false);closeArtModal();renderYear();
+};
+
+// Add modal
+function openAddModal(){document.getElementById('modal-add').classList.remove('hidden');document.getElementById('form-year').value=addingFromYear||'';document.getElementById('upload-progress').textContent='';}
+function closeAddModal(){
+  document.getElementById('modal-add').classList.add('hidden');
+  pendingFile=null;pendingFileType=null;pendingFileName=null;
+  document.getElementById('file-zone-text').textContent='Tap to upload';
+  document.getElementById('file-preview').innerHTML='';
+  document.getElementById('form-year').value='';document.getElementById('form-date').value='';document.getElementById('form-note').value='';
+  document.getElementById('upload-progress').textContent='';document.getElementById('form-submit').disabled=false;
+}
+document.getElementById('add-close-btn').onclick=closeAddModal;
+document.getElementById('modal-add').onclick=e=>{if(e.target===document.getElementById('modal-add'))closeAddModal();};
+
+const fzone=document.getElementById('file-zone'),finput=document.getElementById('file-input');
+fzone.onclick=()=>finput.click();
+fzone.ondragover=e=>e.preventDefault();
+fzone.ondrop=e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f);};
+finput.onchange=()=>{if(finput.files[0])handleFile(finput.files[0]);};
+function handleFile(f){
+  pendingFile=f;pendingFileName=f.name;pendingFileType=f.type.startsWith('image')?'image':'pdf';
+  document.getElementById('file-preview').innerHTML='';
+  if(pendingFileType==='image'){const url=URL.createObjectURL(f);const img=document.createElement('img');img.className='file-prev';img.src=url;document.getElementById('file-preview').appendChild(img);}
+  document.getElementById('file-zone-text').textContent=f.name;
+}
+
+document.getElementById('form-submit').onclick=async()=>{
+  if(!pendingFile){alert('Please upload a file.');return;}
+  const yr=document.getElementById('form-year').value;
+  if(!yr){alert('Please enter a year.');return;}
+  const btn=document.getElementById('form-submit'),prog=document.getElementById('upload-progress');
+  btn.disabled=true;prog.textContent='Uploading file…';
+  try{
+    const ext=pendingFileName.split('.').pop();
+    const path=`${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const fileUrl=await storageUpload('memories',path,pendingFile);
+    prog.textContent='Saving…';
+    const [inserted]=await dbInsert('memories',{year:parseInt(yr),date_created:document.getElementById('form-date').value||null,note:document.getElementById('form-note').value.trim()||null,file_url:fileUrl,file_type:pendingFileType,file_name:pendingFileName,storage_path:path});
+    memories.unshift(inserted);closeAddModal();activeYear=String(yr);showScreen('year');renderYear();
+  }catch(e){prog.textContent='Error: '+e.message;btn.disabled=false;}
+};
+</script>
+</body>
+</html>
