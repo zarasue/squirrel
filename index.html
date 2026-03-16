@@ -31,7 +31,7 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .loading-dot:nth-child(3) { animation-delay: 0.36s; }
 @keyframes dotBounce {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
-  40% { transform: translateY(-10px); opacity: 0.85; }
+  40% { transform: translateY(-10px); opacity: 0.9; }
 }
 
 /* ── OPENING ── */
@@ -40,9 +40,7 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .open-sub { font-size: clamp(0.8rem, 3vw, 1.1rem); color: var(--brown); opacity: 0.65; transition: transform 0.4s ease, opacity 0.4s ease; }
 .open-hint { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown); opacity: 0; position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%); white-space: nowrap; animation: hintFade 2s ease 1.2s forwards; pointer-events: none; }
 @keyframes hintFade { 0%{opacity:0;transform:translateX(-50%) translateY(6px)} 40%{opacity:0.35;transform:translateX(-50%) translateY(0)} 80%{opacity:0.35} 100%{opacity:0.15;transform:translateX(-50%) translateY(0)} }
-/* drag-up progress overlay */
-#screen-open.dragging .open-title,
-#screen-open.dragging .open-sub { transition: none; }
+#screen-open.dragging .open-title, #screen-open.dragging .open-sub { transition: none; }
 
 /* ── MENU ── */
 #screen-menu { background: var(--yellow); display: flex; flex-direction: column; padding: var(--pad); justify-content: center; gap: 0; }
@@ -85,7 +83,7 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .year-empty { color: var(--yellow); opacity: 0.4; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 4rem 0; text-align: center; }
 
 /* ── ART MODAL ── */
-#art-modal { position: fixed; inset: 0; z-index: 100; background: rgba(46,31,31,0.78); display: flex; align-items: center; justify-content: center; padding: clamp(0.8rem, 4vw, 2rem); animation: fi 0.2s ease; -webkit-overflow-scrolling: touch; }
+#art-modal { position: fixed; inset: 0; z-index: 100; background: rgba(46,31,31,0.78); display: flex; align-items: center; justify-content: center; padding: clamp(0.8rem, 4vw, 2rem); animation: fi 0.2s ease; }
 #art-modal.hidden { display: none; }
 @keyframes fi { from{opacity:0}to{opacity:1} }
 .art-modal-inner { position: relative; width: 100%; max-width: 580px; background: var(--white); box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: si 0.22s ease; max-height: 90vh; display: flex; flex-direction: column; }
@@ -134,15 +132,8 @@ textarea.form-input:focus { border-color: var(--brown); }
 .file-prev { max-height: 70px; max-width: 100%; display: block; margin: 0.5rem auto 0; object-fit: contain; }
 .submit-btn { width: 100%; background: var(--brown); color: var(--yellow); border: none; padding: 1rem; font-family: 'Hedvig Letters Serif', serif; font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.15s; }
 .submit-btn:active { opacity: 0.75; }
-.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.upload-progress { min-height: 2rem; display: flex; align-items: center; justify-content: center; margin-top: 0.4rem; }
-.save-dots { display: flex; align-items: center; justify-content: center; gap: 7px; }
-.save-dots.hidden { display: none; }
-.save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brown); opacity: 0.25; animation: dotBounce 1.1s ease-in-out infinite; }
-.save-dot:nth-child(1) { animation-delay: 0s; }
-.save-dot:nth-child(2) { animation-delay: 0.18s; }
-.save-dot:nth-child(3) { animation-delay: 0.36s; }
-.save-error { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: #c0392b; text-align: center; margin-top: 0.4rem; }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.upload-progress { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brown); opacity: 0.5; text-align: center; margin-top: 0.6rem; min-height: 1rem; }
 </style>
 </head>
 <body>
@@ -231,19 +222,11 @@ textarea.form-input:focus { border-color: var(--brown); }
       <textarea class="form-input" id="form-note" placeholder="What is this?"></textarea>
     </div>
     <button class="submit-btn" id="form-submit">Save to Squirrel</button>
-    <div class="upload-progress" id="upload-progress">
-      <div class="save-dots hidden" id="save-dots">
-        <div class="save-dot"></div>
-        <div class="save-dot"></div>
-        <div class="save-dot"></div>
-      </div>
-    </div>
-    <div class="save-error" id="save-error"></div>
+    <div class="upload-progress" id="upload-progress"></div>
   </div>
 </div>
 
 <script>
-// ── HARDCODED CREDENTIALS ──
 const SUPABASE_URL = 'https://elweznxsfubcciqswtim.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_YaIRxTVRcXwuWUEQ_0OR0A_Cw7-3q_-';
 
@@ -270,73 +253,50 @@ const allScreens=['open','menu','year'];
 function showScreen(name){allScreens.forEach(s=>{const el=document.getElementById('screen-'+s);if(s===name)el.classList.remove('hidden');else el.classList.add('hidden');});}
 function showLoading(v){document.getElementById('loading-overlay').classList.toggle('hidden',!v);}
 
-// ── OPENING GESTURE (scroll + swipe) ──
-const openScreen = document.getElementById('screen-open');
-const openTitle  = document.getElementById('open-title');
-const openSub    = document.getElementById('open-sub');
-let openDone = false;
+// Opening gesture
+const openScreen=document.getElementById('screen-open');
+const openTitle=document.getElementById('open-title');
+const openSub=document.getElementById('open-sub');
+let openDone=false;
 
-async function triggerOpen() {
-  if(openDone) return;
-  openDone = true;
-  // animate title up and out
-  openTitle.style.transform = 'translateY(-40px)';
-  openTitle.style.opacity = '0';
-  openSub.style.transform = 'translateY(-24px)';
-  openSub.style.opacity = '0';
-  setTimeout(async () => {
+async function triggerOpen(){
+  if(openDone)return;
+  openDone=true;
+  openTitle.style.transform='translateY(-40px)';openTitle.style.opacity='0';
+  openSub.style.transform='translateY(-24px)';openSub.style.opacity='0';
+  setTimeout(async()=>{
     showLoading(true);
-    try { memories = await dbSelect('memories'); } catch(e) { alert('Could not load memories: '+e.message); }
+    try{memories=await dbSelect('memories');}catch(e){alert('Could not load memories: '+e.message);}
     showLoading(false);
-    showScreen('menu'); renderMenu();
-    // reset for if they ever navigate back
-    setTimeout(()=>{ openDone=false; openTitle.style.transform=''; openTitle.style.opacity=''; openSub.style.transform=''; openSub.style.opacity=''; },600);
-  }, 380);
+    showScreen('menu');renderMenu();
+    setTimeout(()=>{openDone=false;openTitle.style.transform='';openTitle.style.opacity='';openSub.style.transform='';openSub.style.opacity='';},600);
+  },380);
 }
 
-// Mouse wheel / trackpad scroll
-openScreen.addEventListener('wheel', (e) => {
-  if(e.deltaY > 30) triggerOpen();
-}, { passive: true });
+openScreen.addEventListener('wheel',(e)=>{if(e.deltaY>30)triggerOpen();},{passive:true});
 
-// Touch swipe up
-let touchStartY = 0;
-openScreen.addEventListener('touchstart', (e) => {
-  touchStartY = e.touches[0].clientY;
+let touchStartY=0;
+openScreen.addEventListener('touchstart',(e)=>{
+  touchStartY=e.touches[0].clientY;
   openScreen.classList.add('dragging');
-
-  // live drag feedback
-  const onMove = (e) => {
-    const dy = touchStartY - e.touches[0].clientY;
-    if(dy > 0) {
-      const progress = Math.min(dy / 120, 1);
-      const translateY = -progress * 40;
-      const op = 1 - progress * 0.85;
-      openTitle.style.transform = `translateY(${translateY}px)`;
-      openTitle.style.opacity = op;
-      openSub.style.transform = `translateY(${translateY * 0.6}px)`;
-      openSub.style.opacity = op;
-    }
+  const onMove=(e)=>{
+    const dy=touchStartY-e.touches[0].clientY;
+    if(dy>0){const p=Math.min(dy/120,1);openTitle.style.transform=`translateY(${-p*40}px)`;openTitle.style.opacity=1-p*0.85;openSub.style.transform=`translateY(${-p*24}px)`;openSub.style.opacity=1-p*0.85;}
   };
-  const onEnd = (e) => {
+  const onEnd=(e)=>{
     openScreen.classList.remove('dragging');
-    const dy = touchStartY - e.changedTouches[0].clientY;
-    if(dy > 60) {
-      triggerOpen();
-    } else {
-      // snap back
-      openTitle.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-      openSub.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-      openTitle.style.transform = ''; openTitle.style.opacity = '';
-      openSub.style.transform = '';  openSub.style.opacity = '';
-      setTimeout(()=>{ openTitle.style.transition=''; openSub.style.transition=''; }, 320);
+    const dy=touchStartY-e.changedTouches[0].clientY;
+    if(dy>60){triggerOpen();}
+    else{
+      openTitle.style.transition='transform 0.3s ease, opacity 0.3s ease';openSub.style.transition='transform 0.3s ease, opacity 0.3s ease';
+      openTitle.style.transform='';openTitle.style.opacity='';openSub.style.transform='';openSub.style.opacity='';
+      setTimeout(()=>{openTitle.style.transition='';openSub.style.transition='';},320);
     }
-    openScreen.removeEventListener('touchmove', onMove);
-    openScreen.removeEventListener('touchend', onEnd);
+    openScreen.removeEventListener('touchmove',onMove);openScreen.removeEventListener('touchend',onEnd);
   };
-  openScreen.addEventListener('touchmove', onMove, { passive: true });
-  openScreen.addEventListener('touchend', onEnd);
-}, { passive: true });
+  openScreen.addEventListener('touchmove',onMove,{passive:true});
+  openScreen.addEventListener('touchend',onEnd);
+},{passive:true});
 
 // Menu
 function renderMenu(){
@@ -380,20 +340,16 @@ function renderArtModal(){
   const media=document.getElementById('art-modal-media');media.innerHTML='';
   if(m.file_type==='image'&&m.file_url){const img=document.createElement('img');img.src=m.file_url;img.alt='';media.appendChild(img);}
   else{const pd=document.createElement('div');pd.className='art-modal-media-pdf';pd.textContent=m.file_name||'document.pdf';media.appendChild(pd);}
-
   const txt=document.getElementById('art-modal-text');txt.innerHTML='';
   const editRow=document.createElement('div');editRow.className='art-edit-row';
-
   const dateWrap=document.createElement('div');
   const dateLabel=document.createElement('div');dateLabel.className='art-field-label';dateLabel.textContent='Date';
   const dateInput=document.createElement('input');dateInput.className='art-edit-input';dateInput.type='date';dateInput.value=m.date_created||'';
   dateWrap.appendChild(dateLabel);dateWrap.appendChild(dateInput);editRow.appendChild(dateWrap);
-
   const noteWrap=document.createElement('div');
   const noteLabel=document.createElement('div');noteLabel.className='art-field-label';noteLabel.textContent='Note';
   const noteInput=document.createElement('input');noteInput.className='art-edit-input';noteInput.type='text';noteInput.value=m.note||'';noteInput.placeholder='Add a note…';
   noteWrap.appendChild(noteLabel);noteWrap.appendChild(noteInput);editRow.appendChild(noteWrap);
-
   const saveBtn=document.createElement('button');saveBtn.className='art-edit-save';saveBtn.textContent='Save changes';
   saveBtn.onclick=async()=>{
     const newDate=dateInput.value||null,newNote=noteInput.value.trim()||null;
@@ -405,9 +361,7 @@ function renderArtModal(){
       setTimeout(()=>{saveBtn.textContent='Save changes';saveBtn.disabled=false;},1500);
     }catch(e){saveBtn.textContent='Error saving';saveBtn.disabled=false;}
   };
-  editRow.appendChild(saveBtn);
-  txt.appendChild(editRow);
-
+  editRow.appendChild(saveBtn);txt.appendChild(editRow);
   const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===m.id);
   document.getElementById('art-prev-btn').style.opacity=idx>0?'0.4':'0.15';
   document.getElementById('art-next-btn').style.opacity=idx<items.length-1?'0.4':'0.15';
@@ -429,15 +383,9 @@ function openAddModal(){
   document.getElementById('modal-add').classList.remove('hidden');
   document.getElementById('form-year').value=addingFromYear||'';
   document.getElementById('upload-progress').textContent='';
-
-  // auto-fill year from date if year not already set
-  const dateInput = document.getElementById('form-date');
-  const yearInput = document.getElementById('form-year');
-  dateInput.onchange = () => {
-    if(dateInput.value && !yearInput.value) {
-      yearInput.value = dateInput.value.split('-')[0];
-    }
-  };
+  const dateInput=document.getElementById('form-date');
+  const yearInput=document.getElementById('form-year');
+  dateInput.onchange=()=>{ if(dateInput.value&&!yearInput.value) yearInput.value=dateInput.value.split('-')[0]; };
 }
 function closeAddModal(){
   document.getElementById('modal-add').classList.add('hidden');
@@ -447,8 +395,7 @@ function closeAddModal(){
   document.getElementById('form-year').value='';
   document.getElementById('form-date').value='';
   document.getElementById('form-note').value='';
-  document.getElementById('save-dots').classList.add('hidden');
-  document.getElementById('save-error').textContent='';
+  document.getElementById('upload-progress').textContent='';
   document.getElementById('form-submit').disabled=false;
 }
 document.getElementById('add-close-btn').onclick=closeAddModal;
@@ -471,11 +418,9 @@ document.getElementById('form-submit').onclick=async()=>{
   const yr=document.getElementById('form-year').value;
   if(!yr){alert('Please enter a year.');return;}
   const btn=document.getElementById('form-submit');
-  const dots=document.getElementById('save-dots');
-  const errEl=document.getElementById('save-error');
+  const prog=document.getElementById('upload-progress');
   btn.disabled=true;
-  dots.classList.remove('hidden');
-  errEl.textContent='';
+  prog.textContent='Saving…';
   try{
     const ext=pendingFileName.split('.').pop();
     const path=`${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -483,8 +428,7 @@ document.getElementById('form-submit').onclick=async()=>{
     const [inserted]=await dbInsert('memories',{year:parseInt(yr),date_created:document.getElementById('form-date').value||null,note:document.getElementById('form-note').value.trim()||null,file_url:fileUrl,file_type:pendingFileType,file_name:pendingFileName,storage_path:path});
     memories.unshift(inserted);closeAddModal();activeYear=String(yr);showScreen('year');renderYear();
   }catch(e){
-    dots.classList.add('hidden');
-    errEl.textContent='Error: '+e.message;
+    prog.textContent='Error: '+e.message;
     btn.disabled=false;
   }
 };
