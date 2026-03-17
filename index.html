@@ -59,6 +59,27 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .tl-line { width: 1px; height: clamp(1.5rem, 3vh, 3rem); background: var(--brown); opacity: 0.3; margin-left: 0.1rem; }
 @media (min-width: 600px) { .tl-line { margin-left: 0; margin-right: 0.1rem; } }
 .menu-empty { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.menu-scroll-hint { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown); opacity: 0; position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none; animation: hintFade 2s ease 1.8s forwards; }
+
+/* ── GALLERY ── */
+#screen-gallery { background: var(--brown); display: flex; flex-direction: column; overflow: hidden; transform: translateY(100%); opacity: 1; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); }
+#screen-gallery.visible { transform: translateY(0); }
+#screen-gallery.hidden { transform: translateY(100%); opacity: 1; pointer-events: none; }
+.gallery-topbar { display: flex; align-items: baseline; justify-content: space-between; padding: clamp(1.2rem, 4vw, 2rem) var(--pad) clamp(0.8rem, 2vw, 1.2rem); flex-shrink: 0; }
+.gallery-title { font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 400; letter-spacing: -0.02em; color: var(--yellow); opacity: 0.7; cursor: pointer; transition: opacity 0.15s; }
+.gallery-title:hover { opacity: 1; }
+.gallery-logo { font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 400; color: var(--yellow); cursor: pointer; opacity: 0.7; letter-spacing: -0.02em; }
+.gallery-logo:hover { opacity: 1; }
+.gallery-wrap { flex: 1; overflow-y: auto; padding: 0 var(--pad) 3rem; -webkit-overflow-scrolling: touch; }
+.gallery-masonry { columns: 3; column-gap: clamp(4px, 1vw, 8px); }
+@media (max-width: 500px) { .gallery-masonry { columns: 2; } }
+.gallery-item { break-inside: avoid; margin-bottom: clamp(4px, 1vw, 8px); cursor: pointer; position: relative; overflow: hidden; display: block; }
+.gallery-item img { width: 100%; display: block; object-fit: cover; transition: transform 0.25s ease; }
+.gallery-item .gallery-overlay { position: absolute; inset: 0; background: rgba(46,31,31,0); transition: background 0.25s ease; display: flex; align-items: flex-end; justify-content: flex-end; padding: 8px 10px; pointer-events: none; }
+.gallery-item:hover .gallery-overlay { background: rgba(46,31,31,0.35); }
+.gallery-item .gallery-caption { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 400; color: #f5f0c8; text-shadow: 0 1px 3px rgba(0,0,0,0.4); text-align: right; line-height: 1.4; max-width: 90%; opacity: 0; transition: opacity 0.25s ease; }
+.gallery-item:hover .gallery-caption { opacity: 1; }
+.gallery-empty { color: var(--yellow); opacity: 0.4; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 4rem 0; text-align: center; }
 
 /* ── YEAR ── */
 #screen-year { background: var(--brown); display: flex; flex-direction: column; overflow: hidden; }
@@ -168,6 +189,18 @@ textarea.form-input:focus { border-color: var(--brown); }
     </div>
   </div>
   <div class="menu-timeline" id="menu-timeline"></div>
+  <div class="menu-scroll-hint">scroll down for all memories</div>
+</div>
+
+<!-- GALLERY -->
+<div class="screen hidden" id="screen-gallery">
+  <div class="gallery-topbar">
+    <div class="gallery-title" id="gallery-back-btn">↑ Menu</div>
+    <div class="gallery-logo" id="gallery-logo-btn">Squirrel.</div>
+  </div>
+  <div class="gallery-wrap" id="gallery-wrap">
+    <div class="gallery-masonry" id="gallery-masonry"></div>
+  </div>
 </div>
 
 <!-- YEAR -->
@@ -279,8 +312,8 @@ function accentCls(id){return GRID_ACCENTS[hash(id)%GRID_ACCENTS.length];}
 function getYears(){const m={};memories.forEach(x=>{m[x.year]=(m[x.year]||0)+1;});return Object.entries(m).sort((a,b)=>b[0]-a[0]);}
 function forYear(y){return memories.filter(x=>x.year==y);}
 
-const allScreens=['open','menu','year'];
-function showScreen(name){allScreens.forEach(s=>{const el=document.getElementById('screen-'+s);if(s===name)el.classList.remove('hidden');else el.classList.add('hidden');});}
+const allScreens=['open','menu','year','gallery'];
+function showScreen(name){allScreens.forEach(s=>{const el=document.getElementById('screen-'+s);if(s===name){el.classList.remove('hidden');if(s==='gallery')el.classList.add('visible');}else{if(s==='gallery'){el.classList.remove('visible');el.classList.add('hidden');}else el.classList.add('hidden');}});}
 function showLoading(v){document.getElementById('loading-overlay').classList.toggle('hidden',!v);}
 
 // Opening gesture
@@ -344,6 +377,74 @@ function renderMenu(){
 }
 document.getElementById('menu-add-btn').onclick=()=>{addingFromYear=null;openAddModal();};
 
+// ── MENU → GALLERY gesture ──
+const menuScreen = document.getElementById('screen-menu');
+let menuTouchStartY = 0;
+
+function openGallery() {
+  activeYear = null;
+  renderGallery();
+  const gallery = document.getElementById('screen-gallery');
+  gallery.classList.remove('hidden');
+  // small delay so transition fires
+  requestAnimationFrame(()=>requestAnimationFrame(()=>gallery.classList.add('visible')));
+  menuScreen.classList.add('hidden');
+}
+
+function closeGallery() {
+  const gallery = document.getElementById('screen-gallery');
+  gallery.classList.remove('visible');
+  menuScreen.classList.remove('hidden');
+  setTimeout(()=>gallery.classList.add('hidden'), 550);
+}
+
+menuScreen.addEventListener('wheel', (e)=>{ if(e.deltaY > 40) openGallery(); }, { passive: true });
+menuScreen.addEventListener('touchstart', (e)=>{ menuTouchStartY = e.touches[0].clientY; }, { passive: true });
+menuScreen.addEventListener('touchend', (e)=>{
+  const dy = menuTouchStartY - e.changedTouches[0].clientY;
+  if(dy > 60) openGallery();
+}, { passive: true });
+
+document.getElementById('gallery-back-btn').onclick = closeGallery;
+document.getElementById('gallery-logo-btn').onclick = ()=>{ closeGallery(); };
+
+// swipe up from gallery to go back
+const galleryWrap = document.getElementById('gallery-wrap');
+let galleryTouchStartY = 0;
+galleryWrap.addEventListener('touchstart', (e)=>{ galleryTouchStartY = e.touches[0].clientY; }, { passive: true });
+galleryWrap.addEventListener('touchend', (e)=>{
+  if(galleryWrap.scrollTop === 0) {
+    const dy = e.changedTouches[0].clientY - galleryTouchStartY;
+    if(dy > 60) closeGallery();
+  }
+}, { passive: true });
+
+function renderGallery() {
+  const masonry = document.getElementById('gallery-masonry');
+  masonry.innerHTML = '';
+  const sorted = [...memories].sort((a,b)=> parseInt(b.year) - parseInt(a.year));
+  if(!sorted.length) {
+    masonry.innerHTML = '<div class="gallery-empty" style="column-span:all;">No memories yet</div>';
+    return;
+  }
+  sorted.forEach(m => {
+    if(m.file_type !== 'image' || !m.file_url) return;
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    const img = document.createElement('img');
+    img.src = m.file_url; img.alt = '';
+    const overlay = document.createElement('div');
+    overlay.className = 'gallery-overlay';
+    const cap = document.createElement('span');
+    cap.className = 'gallery-caption';
+    cap.textContent = m.note || '';
+    overlay.appendChild(cap);
+    item.append(img, overlay);
+    item.onclick = () => { activeYear = null; openArtModal(m); };
+    masonry.appendChild(item);
+  });
+}
+
 // Year grid
 function renderYear(){
   document.getElementById('year-back-btn').textContent=activeYear;
@@ -368,6 +469,11 @@ document.getElementById('year-logo-btn').onclick=()=>{showScreen('menu');renderM
 // Art modal
 function openArtModal(m){viewMem=m;renderArtModal();document.getElementById('art-modal').classList.remove('hidden');}
 function closeArtModal(){document.getElementById('art-modal').classList.add('hidden');document.getElementById('art-edit-panel').classList.remove('open');viewMem=null;}
+
+function getModalList() {
+  if(activeYear) return forYear(activeYear);
+  return [...memories].sort((a,b)=>parseInt(b.year)-parseInt(a.year));
+}
 function renderArtModal(){
   const m=viewMem;
   const media=document.getElementById('art-modal-media');media.innerHTML='';
@@ -394,7 +500,7 @@ function renderArtModal(){
   document.getElementById('art-edit-panel').classList.remove('open');
 
   // prev/next arrows
-  const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===m.id);
+  const items=getModalList();const idx=items.findIndex(x=>x.id===m.id);
   document.getElementById('art-prev-btn').disabled=idx<=0;
   document.getElementById('art-next-btn').disabled=idx>=items.length-1;
 }
@@ -420,11 +526,11 @@ setupIconHover('art-edit-btn','svg');
 setupIconHover('art-del-btn','svg');
 
 document.getElementById('art-prev-btn').onclick=()=>{
-  const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);
+  const items=getModalList();const idx=items.findIndex(x=>x.id===viewMem.id);
   if(idx>0){viewMem=items[idx-1];renderArtModal();}
 };
 document.getElementById('art-next-btn').onclick=()=>{
-  const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);
+  const items=getModalList();const idx=items.findIndex(x=>x.id===viewMem.id);
   if(idx<items.length-1){viewMem=items[idx+1];renderArtModal();}
 };
 
