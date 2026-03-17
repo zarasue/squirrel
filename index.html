@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Squirrel</title>
-<link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif:opsz@12..24&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif:opsz@12..24&family=Inter:wght@400&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -73,11 +73,14 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .year-grid-wrap { flex: 1; overflow-y: auto; padding: 0 var(--pad) clamp(2rem, 6vw, 3rem); -webkit-overflow-scrolling: touch; }
 .year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(3px, 1vw, 6px); }
 @media (max-width: 380px) { .year-grid { grid-template-columns: repeat(2, 1fr); } }
-.grid-item { aspect-ratio: 1; cursor: pointer; overflow: hidden; background: var(--blue2); transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
-.grid-item:hover { transform: scale(1.04); box-shadow: 0 8px 24px rgba(46,31,31,0.22); filter: brightness(1.06); z-index: 1; position: relative; }
-.grid-item:active { transform: scale(0.98); filter: brightness(0.95); }
-.grid-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
-.grid-item:hover img { transform: scale(1.03); }
+.grid-item { aspect-ratio: 1; cursor: pointer; overflow: hidden; background: var(--blue2); transition: transform 0.25s ease, box-shadow 0.25s ease; position: relative; }
+.grid-item:hover { box-shadow: 0 8px 24px rgba(46,31,31,0.22); z-index: 1; }
+.grid-item:active { transform: scale(0.98); }
+.grid-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.grid-item .grid-overlay { position: absolute; inset: 0; background: rgba(46,31,31,0); transition: background 0.25s ease; display: flex; align-items: flex-end; justify-content: flex-end; padding: 8px 10px; pointer-events: none; }
+.grid-item:hover .grid-overlay { background: rgba(46,31,31,0.35); }
+.grid-item .grid-caption { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 400; color: #f5f0c8; text-shadow: 0 1px 3px rgba(0,0,0,0.4); text-align: right; line-height: 1.4; max-width: 90%; opacity: 0; transition: opacity 0.25s ease; }
+.grid-item:hover .grid-caption { opacity: 1; }
 .grid-item-pdf { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.7; }
 .gi-y { background: var(--yellow); } .gi-b1 { background: var(--blue1); } .gi-b2 { background: var(--blue2); }
 .year-empty { color: var(--yellow); opacity: 0.4; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 4rem 0; text-align: center; }
@@ -86,26 +89,31 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 #art-modal { position: fixed; inset: 0; z-index: 100; background: rgba(46,31,31,0.78); display: flex; align-items: center; justify-content: center; padding: clamp(0.8rem, 4vw, 2rem); animation: fi 0.2s ease; }
 #art-modal.hidden { display: none; }
 @keyframes fi { from{opacity:0}to{opacity:1} }
-.art-modal-inner { position: relative; width: 100%; max-width: 580px; background: var(--white); box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: si 0.22s ease; max-height: 90vh; display: flex; flex-direction: column; }
+.art-modal-outer { display: flex; align-items: center; gap: clamp(0.6rem, 2vw, 1.2rem); width: 100%; max-width: 720px; }
+.art-arrow { all: unset; cursor: pointer; opacity: 0.3; transition: opacity 0.2s; padding: 0.5rem; flex-shrink: 0; display: flex; align-items: center; }
+.art-arrow:hover { opacity: 0.65; }
+.art-arrow:disabled { opacity: 0.08; cursor: default; }
+.art-arrow svg { width: 26px; height: 26px; display: block; stroke: var(--yellow); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.art-modal-inner { position: relative; flex: 1; min-width: 0; max-width: 580px; background: var(--white); box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: si 0.22s ease; max-height: 90vh; display: flex; flex-direction: column; transition: max-width 0.25s ease; }
+.art-modal-inner.portrait { max-width: 320px; }
 @keyframes si { from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)} }
-.art-modal-media { width: 100%; flex: 1; min-height: 0; background: var(--yellow); overflow: hidden; display: flex; align-items: center; justify-content: center; max-height: 60vh; }
-.art-modal-media img { width: 100%; height: 100%; object-fit: contain; display: block; max-height: 60vh; }
-.art-modal-media-pdf { padding: 3rem 2rem; font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.5; text-align: center; }
-.art-modal-close { position: absolute; top: 0.7rem; right: 0.8rem; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--brown); opacity: 0.45; font-family: 'Hedvig Letters Serif', serif; line-height: 1; z-index: 2; padding: 0.3rem; }
-.art-modal-close:active { opacity: 1; }
-.art-modal-info { padding: clamp(0.7rem, 3vw, 1rem) clamp(0.9rem, 3vw, 1.2rem); border-top: 1px solid rgba(46,31,31,0.1); display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; flex-shrink: 0; }
-.art-modal-info-text { flex: 1; min-width: 0; }
-.art-edit-row { display: flex; flex-direction: column; gap: 0.5rem; }
-.art-edit-input { background: transparent; border: none; border-bottom: 1px solid rgba(46,31,31,0.2); padding: 0.3rem 0; font-family: 'Hedvig Letters Serif', serif; font-size: clamp(0.75rem, 2.5vw, 0.82rem); color: var(--brown); outline: none; width: 100%; font-style: italic; }
-.art-edit-input:focus { border-bottom-color: var(--brown); }
-.art-field-label { font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.4; margin-bottom: 2px; }
-.art-edit-save { background: none; border: none; cursor: pointer; font-family: 'Hedvig Letters Serif', serif; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.5; padding: 0.4rem 0 0; transition: opacity 0.15s; text-align: left; }
-.art-edit-save:hover { opacity: 1; }
-.art-nav { display: flex; gap: clamp(0.5rem, 2vw, 0.8rem); align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
-.art-nav-btn { background: none; border: none; cursor: pointer; font-family: 'Hedvig Letters Serif', serif; font-size: clamp(0.6rem, 2vw, 0.65rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brown); opacity: 0.4; transition: opacity 0.15s; padding: 0.4rem 0; min-width: 44px; text-align: center; }
-.art-nav-btn:active { opacity: 1; }
-.art-del-btn { background: none; border: none; cursor: pointer; font-family: 'Hedvig Letters Serif', serif; font-size: clamp(0.6rem, 2vw, 0.65rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brown); opacity: 0.3; transition: opacity 0.15s; padding: 0.4rem 0; min-width: 44px; text-align: center; }
-.art-del-btn:active { opacity: 0.8; }
+.art-modal-media { width: 100%; flex: 1; min-height: 0; background: var(--yellow); overflow: hidden; display: block; line-height: 0; font-size: 0; max-height: 70vh; }
+.art-modal-media img { width: 100%; height: 100%; object-fit: contain; display: block; border: none; outline: none; box-shadow: none; max-height: 70vh; }
+.art-modal-media-pdf { display: flex; align-items: center; justify-content: center; min-height: 200px; font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.5; text-align: center; padding: 3rem 2rem; }
+.art-modal-close { all: unset; cursor: pointer; position: absolute; top: 0.7rem; right: 0.8rem; font-size: 1.1rem; color: var(--brown); opacity: 0.35; font-family: 'Hedvig Letters Serif', serif; padding: 0.3rem; z-index: 2; transition: opacity 0.15s; }
+.art-modal-close:hover { opacity: 0.7; }
+.art-modal-info { padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-shrink: 0; }
+.art-modal-info-text { flex: 1; min-width: 0; font-family: 'Hedvig Letters Serif', serif; font-size: 0.8rem; font-style: italic; color: var(--brown); opacity: 0.55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.art-icon-btns { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.art-icon-btn { all: unset; cursor: pointer; padding: 0.35rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.art-icon-btn svg { width: 15px; height: 15px; display: block; stroke: var(--brown); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.35; transition: opacity 0.18s; }
+.art-edit-panel { padding: 0 1rem 1rem; background: var(--white); display: none; flex-direction: column; gap: 0.65rem; flex-shrink: 0; }
+.art-edit-panel.open { display: flex; }
+.art-field-label { font-family: 'Inter', sans-serif; font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brown); opacity: 0.35; margin-bottom: 4px; display: block; }
+.art-edit-input { all: unset; display: block; width: 100%; background: #f8f5ed; border-radius: 6px; padding: 0.45rem 0.65rem; font-family: 'Hedvig Letters Serif', serif; font-size: 0.85rem; font-style: italic; color: var(--brown); color-scheme: light; box-sizing: border-box; }
+.art-edit-input:focus { background: #f3efe4; }
+.art-edit-save { all: unset; cursor: pointer; background: var(--brown); color: var(--yellow); font-family: 'Inter', sans-serif; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 0.6rem 1.2rem; border-radius: 6px; align-self: flex-start; margin-top: 0.2rem; transition: opacity 0.15s; display: inline-block; }
+.art-edit-save:hover { opacity: 0.7; }
 
 /* ── ADD MODAL ── */
 #modal-add { position: fixed; inset: 0; z-index: 200; background: rgba(46,31,31,0.55); display: flex; align-items: flex-end; justify-content: center; animation: fi 0.2s ease; }
@@ -178,17 +186,39 @@ textarea.form-input:focus { border-color: var(--brown); }
 
 <!-- ART MODAL -->
 <div id="art-modal" class="hidden">
-  <div class="art-modal-inner">
-    <button class="art-modal-close" id="art-close-btn">✕</button>
-    <div class="art-modal-media" id="art-modal-media"></div>
-    <div class="art-modal-info">
-      <div class="art-modal-info-text" id="art-modal-text"></div>
-      <div class="art-nav">
-        <button class="art-nav-btn" id="art-prev-btn">← Prev</button>
-        <button class="art-nav-btn" id="art-next-btn">Next →</button>
-        <button class="art-del-btn" id="art-del-btn">Delete</button>
+  <div class="art-modal-outer">
+    <button class="art-arrow" id="art-prev-btn" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="art-modal-inner">
+      <button class="art-modal-close" id="art-close-btn">✕</button>
+      <div class="art-modal-media" id="art-modal-media"></div>
+      <div class="art-modal-info">
+        <div class="art-modal-info-text" id="art-modal-text"></div>
+        <div class="art-icon-btns">
+          <button class="art-icon-btn" id="art-edit-btn" title="Edit">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="art-icon-btn" id="art-del-btn" title="Delete">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="art-edit-panel" id="art-edit-panel">
+        <div>
+          <div class="art-field-label">Date</div>
+          <input class="art-edit-input" type="date" id="art-date-input">
+        </div>
+        <div>
+          <div class="art-field-label">Note</div>
+          <input class="art-edit-input" type="text" id="art-note-input" placeholder="Add a note…">
+        </div>
+        <button class="art-edit-save" id="art-save-btn">Save changes</button>
       </div>
     </div>
+    <button class="art-arrow" id="art-next-btn" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 </div>
 
@@ -324,6 +354,9 @@ function renderYear(){
     const cell=document.createElement('div');cell.className='grid-item';
     if(m.file_type==='image'&&m.file_url){const img=document.createElement('img');img.src=m.file_url;img.alt='';cell.appendChild(img);}
     else{cell.classList.add(accentCls(m.id));const pd=document.createElement('div');pd.className='grid-item-pdf';pd.textContent='PDF';cell.appendChild(pd);}
+    const overlay=document.createElement('div');overlay.className='grid-overlay';
+    const caption=document.createElement('span');caption.className='grid-caption';caption.textContent=m.note||'';
+    overlay.appendChild(caption);cell.appendChild(overlay);
     cell.onclick=()=>openArtModal(m);
     grid.appendChild(cell);
   });
@@ -334,42 +367,87 @@ document.getElementById('year-logo-btn').onclick=()=>{showScreen('menu');renderM
 
 // Art modal
 function openArtModal(m){viewMem=m;renderArtModal();document.getElementById('art-modal').classList.remove('hidden');}
-function closeArtModal(){document.getElementById('art-modal').classList.add('hidden');viewMem=null;}
+function closeArtModal(){document.getElementById('art-modal').classList.add('hidden');document.getElementById('art-edit-panel').classList.remove('open');viewMem=null;}
 function renderArtModal(){
   const m=viewMem;
   const media=document.getElementById('art-modal-media');media.innerHTML='';
-  if(m.file_type==='image'&&m.file_url){const img=document.createElement('img');img.src=m.file_url;img.alt='';media.appendChild(img);}
-  else{const pd=document.createElement('div');pd.className='art-modal-media-pdf';pd.textContent=m.file_name||'document.pdf';media.appendChild(pd);}
-  const txt=document.getElementById('art-modal-text');txt.innerHTML='';
-  const editRow=document.createElement('div');editRow.className='art-edit-row';
-  const dateWrap=document.createElement('div');
-  const dateLabel=document.createElement('div');dateLabel.className='art-field-label';dateLabel.textContent='Date';
-  const dateInput=document.createElement('input');dateInput.className='art-edit-input';dateInput.type='date';dateInput.value=m.date_created||'';
-  dateWrap.appendChild(dateLabel);dateWrap.appendChild(dateInput);editRow.appendChild(dateWrap);
-  const noteWrap=document.createElement('div');
-  const noteLabel=document.createElement('div');noteLabel.className='art-field-label';noteLabel.textContent='Note';
-  const noteInput=document.createElement('input');noteInput.className='art-edit-input';noteInput.type='text';noteInput.value=m.note||'';noteInput.placeholder='Add a note…';
-  noteWrap.appendChild(noteLabel);noteWrap.appendChild(noteInput);editRow.appendChild(noteWrap);
-  const saveBtn=document.createElement('button');saveBtn.className='art-edit-save';saveBtn.textContent='Save changes';
-  saveBtn.onclick=async()=>{
-    const newDate=dateInput.value||null,newNote=noteInput.value.trim()||null;
-    saveBtn.textContent='Saving…';saveBtn.disabled=true;
-    try{
-      const [updated]=await dbUpdate('memories',m.id,{date_created:newDate,note:newNote});
-      const idx=memories.findIndex(x=>x.id===m.id);if(idx>-1)memories[idx]=updated;
-      viewMem=updated;saveBtn.textContent='Saved ✓';
-      setTimeout(()=>{saveBtn.textContent='Save changes';saveBtn.disabled=false;},1500);
-    }catch(e){saveBtn.textContent='Error saving';saveBtn.disabled=false;}
-  };
-  editRow.appendChild(saveBtn);txt.appendChild(editRow);
+  const modalInner=document.querySelector('.art-modal-inner');
+  modalInner.classList.remove('portrait');
+  if(m.file_type==='image'&&m.file_url){
+    const img=document.createElement('img');img.src=m.file_url;img.alt='';
+    img.onload=()=>{ if(img.naturalHeight>img.naturalWidth) modalInner.classList.add('portrait'); };
+    media.appendChild(img);
+  } else {
+    const pd=document.createElement('div');pd.className='art-modal-media-pdf';pd.textContent=m.file_name||'document.pdf';media.appendChild(pd);
+  }
+
+  // info bar text
+  const txt=document.getElementById('art-modal-text');
+  const parts=[];
+  if(m.date_created) parts.push(m.date_created);
+  if(m.note) parts.push(m.note);
+  txt.textContent=parts.join(' · ')||'';
+
+  // populate edit panel fields
+  document.getElementById('art-date-input').value=m.date_created||'';
+  document.getElementById('art-note-input').value=m.note||'';
+  document.getElementById('art-edit-panel').classList.remove('open');
+
+  // prev/next arrows
   const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===m.id);
-  document.getElementById('art-prev-btn').style.opacity=idx>0?'0.4':'0.15';
-  document.getElementById('art-next-btn').style.opacity=idx<items.length-1?'0.4':'0.15';
+  document.getElementById('art-prev-btn').disabled=idx<=0;
+  document.getElementById('art-next-btn').disabled=idx>=items.length-1;
 }
+
 document.getElementById('art-close-btn').onclick=closeArtModal;
 document.getElementById('art-modal').onclick=e=>{if(e.target===document.getElementById('art-modal'))closeArtModal();};
-document.getElementById('art-prev-btn').onclick=()=>{const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);if(idx>0){viewMem=items[idx-1];renderArtModal();}};
-document.getElementById('art-next-btn').onclick=()=>{const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);if(idx<items.length-1){viewMem=items[idx+1];renderArtModal();}};
+
+// arrow hover via JS to avoid CSS override issues
+['art-prev-btn','art-next-btn'].forEach(id=>{
+  const btn=document.getElementById(id);
+  btn.addEventListener('mouseenter',()=>{ if(!btn.disabled) btn.style.opacity='0.7'; });
+  btn.addEventListener('mouseleave',()=>{ btn.style.opacity=btn.disabled?'0.08':'0.3'; });
+});
+
+// icon button hover via JS
+function setupIconHover(btnId, iconSelector) {
+  const btn=document.getElementById(btnId);
+  const icon=btn.querySelector('svg');
+  btn.addEventListener('mouseenter',()=>{ btn.style.background='rgba(245,240,200,0.7)'; icon.style.opacity='0.75'; });
+  btn.addEventListener('mouseleave',()=>{ btn.style.background=''; icon.style.opacity='0.35'; });
+}
+setupIconHover('art-edit-btn','svg');
+setupIconHover('art-del-btn','svg');
+
+document.getElementById('art-prev-btn').onclick=()=>{
+  const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);
+  if(idx>0){viewMem=items[idx-1];renderArtModal();}
+};
+document.getElementById('art-next-btn').onclick=()=>{
+  const items=forYear(activeYear);const idx=items.findIndex(x=>x.id===viewMem.id);
+  if(idx<items.length-1){viewMem=items[idx+1];renderArtModal();}
+};
+
+document.getElementById('art-edit-btn').onclick=()=>{
+  document.getElementById('art-edit-panel').classList.toggle('open');
+};
+
+document.getElementById('art-save-btn').onclick=async()=>{
+  const saveBtn=document.getElementById('art-save-btn');
+  const newDate=document.getElementById('art-date-input').value||null;
+  const newNote=document.getElementById('art-note-input').value.trim()||null;
+  saveBtn.textContent='Saving…';saveBtn.disabled=true;
+  try{
+    const [updated]=await dbUpdate('memories',viewMem.id,{date_created:newDate,note:newNote});
+    const idx=memories.findIndex(x=>x.id===viewMem.id);if(idx>-1)memories[idx]=updated;
+    viewMem=updated;
+    const parts=[];if(updated.date_created)parts.push(updated.date_created);if(updated.note)parts.push(updated.note);
+    document.getElementById('art-modal-text').textContent=parts.join(' · ')||'';
+    saveBtn.textContent='Saved ✓';
+    setTimeout(()=>{saveBtn.textContent='Save changes';saveBtn.disabled=false;document.getElementById('art-edit-panel').classList.remove('open');},1200);
+  }catch(e){saveBtn.textContent='Error';saveBtn.disabled=false;}
+};
+
 document.getElementById('art-del-btn').onclick=async()=>{
   if(!confirm('Delete this memory?'))return;
   showLoading(true);
