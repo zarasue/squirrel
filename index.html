@@ -51,25 +51,31 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .open-hint { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown); opacity: 0; position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%); white-space: nowrap; animation: hintFade 2s ease 1.2s forwards; pointer-events: none; }
 @keyframes hintFade { 0%{opacity:0;transform:translateX(-50%) translateY(6px)} 40%{opacity:0.35;transform:translateX(-50%) translateY(0)} 80%{opacity:0.35} 100%{opacity:0.15;transform:translateX(-50%) translateY(0)} }
 #screen-open.dragging .open-title, #screen-open.dragging .open-sub { transition: none; }
+.open-arrow-btn { all: unset; position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; opacity: 0; animation: arrowAppear 1s ease 0.6s forwards; -webkit-tap-highlight-color: transparent; padding: 0.6rem 1.2rem; }
+.open-arrow-btn:active { opacity: 0.4; }
+@keyframes arrowAppear { 0%{opacity:0;transform:translateX(-50%) translateY(8px)} 100%{opacity:1;transform:translateX(-50%) translateY(0)} }
+.open-arrow-chevron { display: block; width: 28px; height: 16px; animation: arrowBounce 1.8s ease-in-out infinite; }
+@keyframes arrowBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(6px)} }
 
 /* ── MENU ── */
-#screen-menu { background: var(--yellow); display: flex; flex-direction: column; padding: var(--pad); justify-content: center; gap: 0; }
-@media (min-width: 600px) { #screen-menu { flex-direction: row; align-items: center; padding: 0 6vw; } }
+#screen-menu { background: var(--yellow); display: flex; flex-direction: column; padding: var(--pad); padding-bottom: 5rem; justify-content: center; gap: 0; overflow: hidden; }
+@media (min-width: 600px) { #screen-menu { flex-direction: row; align-items: center; padding: 0 6vw; overflow: visible; } }
 .menu-left { display: flex; flex-direction: column; gap: 2rem; flex: 1; }
 .menu-logo-row { display: flex; align-items: baseline; gap: 1.2rem; }
 .menu-logo { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 400; letter-spacing: -0.02em; color: var(--brown); }
 .menu-add { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 400; color: var(--blue1); cursor: pointer; transition: opacity 0.15s; letter-spacing: -0.02em; }
 .menu-add:hover, .menu-add:active { opacity: 0.65; }
-.menu-timeline { display: flex; flex-direction: column; align-items: flex-start; margin-top: 2.5rem; }
-@media (min-width: 600px) { .menu-timeline { align-items: flex-end; margin-top: 0; padding-right: 2vw; } }
+.menu-timeline { display: flex; flex-direction: column; align-items: flex-start; margin-top: 1.2rem; overflow-y: auto; max-height: 52vh; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.menu-timeline::-webkit-scrollbar { display: none; }
+@media (min-width: 600px) { .menu-timeline { align-items: flex-end; margin-top: 0; padding-right: 2vw; max-height: 80vh; } }
 .tl-item { display: flex; flex-direction: column; align-items: flex-start; }
 @media (min-width: 600px) { .tl-item { align-items: flex-end; } }
-.tl-year { font-size: clamp(2rem, 8vw, 3.2rem); font-weight: 400; letter-spacing: -0.03em; color: var(--brown); cursor: pointer; transition: opacity 0.15s; line-height: 1.15; padding: 0.15rem 0; }
+.tl-year { font-size: clamp(1.8rem, 7vw, 3.2rem); font-weight: 400; letter-spacing: -0.03em; color: var(--brown); cursor: pointer; transition: opacity 0.15s; line-height: 1.15; padding: 0.1rem 0; }
+@media (min-width: 600px) { .tl-year { font-size: clamp(2rem, 8vw, 3.2rem); padding: 0.15rem 0; } }
 .tl-year:hover, .tl-year:active { opacity: 0.5; }
-.tl-line { width: 1px; height: clamp(1.5rem, 3vh, 3rem); background: var(--brown); opacity: 0.3; margin-left: 0.1rem; }
-@media (min-width: 600px) { .tl-line { margin-left: 0; margin-right: 0.1rem; } }
+.tl-line { width: 1px; height: clamp(0.8rem, 2vh, 2rem); background: var(--brown); opacity: 0.3; margin-left: 0.1rem; }
+@media (min-width: 600px) { .tl-line { height: clamp(1.5rem, 3vh, 3rem); margin-left: 0; margin-right: 0.1rem; } }
 .menu-empty { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.menu-scroll-hint { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brown); opacity: 0; position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none; animation: hintFade 2s ease 1.8s forwards; }
 
 /* ── GALLERY ── */
 #screen-gallery { background: var(--brown); display: flex; flex-direction: column; overflow: hidden; transform: translateY(100%); opacity: 1; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); }
@@ -199,7 +205,10 @@ textarea.form-input:focus { border-color: var(--brown); }
     </div>
   </div>
   <div class="menu-timeline" id="menu-timeline"></div>
-  <div class="menu-scroll-hint">scroll down for all memories</div>
+  <button class="open-arrow-btn" id="menu-arrow-btn" aria-label="View all memories">
+    <span style="font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--brown);opacity:0.35;font-family:'Inter',sans-serif;">scroll</span>
+    <svg class="open-arrow-chevron" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points="2,2 14,13 26,2" stroke="#2e1f1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg>
+  </button>
 </div>
 
 <!-- GALLERY -->
@@ -417,6 +426,7 @@ menuScreen.addEventListener('touchend', (e)=>{
 
 document.getElementById('gallery-back-btn').onclick = closeGallery;
 document.getElementById('gallery-logo-btn').onclick = ()=>{ closeGallery(); };
+document.getElementById('menu-arrow-btn').onclick = openGallery;
 
 // swipe up from gallery to go back
 const galleryWrap = document.getElementById('gallery-wrap');
