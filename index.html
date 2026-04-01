@@ -73,6 +73,7 @@ body { font-family: 'Hedvig Letters Serif', Georgia, serif; background: var(--ye
 .tl-year { font-size: clamp(1.8rem, 7vw, 3.2rem); font-weight: 400; letter-spacing: -0.03em; color: var(--brown); cursor: pointer; transition: opacity 0.15s; line-height: 1.15; padding: 0.1rem 0; }
 @media (min-width: 600px) { .tl-year { font-size: clamp(2rem, 8vw, 3.2rem); padding: 0.15rem 0; } }
 .tl-year:hover, .tl-year:active { opacity: 0.5; }
+.tl-year-unsorted { opacity: 0.45; }
 .tl-line { width: 1px; height: clamp(0.8rem, 2vh, 2rem); background: var(--brown); opacity: 0.3; margin-right: 0.1rem; }
 @media (min-width: 600px) { .tl-line { height: clamp(1.5rem, 3vh, 3rem); margin-left: 0; margin-right: 0.1rem; } }
 .menu-empty { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
@@ -303,6 +304,10 @@ textarea.form-input:focus { border-color: var(--brown); }
           <input class="form-input" type="date" id="form-date">
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;cursor:pointer;">
+        <input type="checkbox" id="form-unsorted" style="accent-color:var(--brown);width:14px;height:14px;">
+        <span style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--brown);opacity:0.55;">Not sure which year</span>
+      </label>
     </div>
     <div class="form-row">
       <label class="form-label">Note — optional</label>
@@ -333,7 +338,8 @@ let pendingFile=null,pendingFileType=null,pendingFileName=null;
 const GRID_ACCENTS=['gi-b2','gi-b1','gi-y'];
 function hash(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))&0xfffffff;return h;}
 function accentCls(id){return GRID_ACCENTS[hash(id)%GRID_ACCENTS.length];}
-function getYears(){const m={};memories.forEach(x=>{m[x.year]=(m[x.year]||0)+1;});return Object.entries(m).sort((a,b)=>b[0]-a[0]);}
+function getYears(){const m={};memories.forEach(x=>{m[x.year]=(m[x.year]||0)+1;});return Object.entries(m).filter(([y])=>y!='0').sort((a,b)=>b[0]-a[0]);}
+function getUnsorted(){return memories.filter(x=>x.year==0);}
 function forYear(y){return memories.filter(x=>x.year==y);}
 
 const allScreens=['open','menu','year','gallery'];
@@ -390,15 +396,25 @@ openScreen.addEventListener('touchstart',(e)=>{
 function renderMenu(){
   const tl=document.getElementById('menu-timeline');tl.innerHTML='';
   const years=getYears();
-  if(!years.length){tl.innerHTML='<div class="menu-empty">No memories yet</div>';return;}
+  const unsorted=getUnsorted();
+  const hasAny=years.length||unsorted.length;
+  if(!hasAny){tl.innerHTML='<div class="menu-empty">No memories yet</div>';return;}
   years.forEach(([yr],i)=>{
     const item=document.createElement('div');item.className='tl-item';
     const yEl=document.createElement('div');yEl.className='tl-year';yEl.textContent=yr;
     yEl.onclick=()=>{activeYear=yr;showScreen('year');renderYear();};
     item.appendChild(yEl);
-    if(i<years.length-1){const line=document.createElement('div');line.className='tl-line';item.appendChild(line);}
+    const showLine=i<years.length-1||unsorted.length>0;
+    if(showLine){const line=document.createElement('div');line.className='tl-line';item.appendChild(line);}
     tl.appendChild(item);
   });
+  if(unsorted.length>0){
+    const item=document.createElement('div');item.className='tl-item';
+    const yEl=document.createElement('div');yEl.className='tl-year tl-year-unsorted';yEl.textContent='?';
+    yEl.onclick=()=>{activeYear='0';showScreen('year');renderYear();};
+    item.appendChild(yEl);
+    tl.appendChild(item);
+  }
 }
 document.getElementById('menu-add-btn').onclick=()=>{addingFromYear=null;openAddModal();};
 
@@ -473,7 +489,7 @@ function renderGallery() {
 
 // Year grid
 function renderYear(){
-  document.getElementById('year-back-btn').textContent=activeYear;
+  document.getElementById('year-back-btn').textContent=activeYear=='0'?'?':activeYear;
   const grid=document.getElementById('year-grid');grid.innerHTML='';
   const items=forYear(activeYear);
   if(!items.length){grid.innerHTML='<div class="year-empty" style="grid-column:1/-1;">Nothing here yet</div>';return;}
@@ -605,6 +621,9 @@ function closeAddModal(){
   document.getElementById('form-year').value='';
   document.getElementById('form-date').value='';
   document.getElementById('form-note').value='';
+  document.getElementById('form-unsorted').checked=false;
+  document.getElementById('form-year').disabled=false;
+  document.getElementById('form-year').style.opacity='1';
   document.getElementById('upload-progress').textContent='';
   document.getElementById('form-submit').disabled=false;
 }
@@ -623,10 +642,18 @@ function handleFile(f){
   document.getElementById('file-zone-text').textContent=f.name;
 }
 
+document.getElementById('form-unsorted').onchange=function(){
+  const yr=document.getElementById('form-year');
+  yr.disabled=this.checked;
+  yr.style.opacity=this.checked?'0.3':'1';
+  if(this.checked)yr.value='';
+};
+
 document.getElementById('form-submit').onclick=async()=>{
   if(!pendingFile){alert('Please upload a file.');return;}
-  const yr=document.getElementById('form-year').value;
-  if(!yr){alert('Please enter a year.');return;}
+  const unsorted=document.getElementById('form-unsorted').checked;
+  const yr=unsorted?'0':document.getElementById('form-year').value;
+  if(!unsorted&&!yr){alert('Please enter a year, or check "Not sure which year".');return;}
   const btn=document.getElementById('form-submit');
   const prog=document.getElementById('upload-progress');
   btn.disabled=true;
